@@ -4,6 +4,9 @@ import re
 import json
 import openai
 import pyautogui
+import warnings
+from msedge.selenium_tools import Edge, EdgeOptions
+from selenium.webdriver.common.keys import Keys
 
 # Set up your OpenAI API credentials
 openai.api_key = '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'
@@ -42,6 +45,30 @@ def generate_answers(question):
 while True:
     questions = scrape_questions(website_url, question_pattern)
 
+    # Configure Edge options for headless browsing
+    options = EdgeOptions()
+    options.use_chromium = True
+    options.add_argument("--headless")
+    options.add_argument("--disable-gpu")
+    # Add any other desired options here
+
+    # Specify the path to the msedgedriver executable (replace with your actual path)
+    webdriver_path = 'http://go.microsoft.com/fwlink/?LinkId=619687'
+
+    # Create the Edge WebDriver instance
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        driver = Edge(options=options, executable_path=webdriver_path)
+
+    # Open the website in the headless browser
+    driver.get(website_url)
+
+    # Wait for the website to load
+    time.sleep(5)
+
+    # Find the answer input field on the website using its HTML attribute or CSS selector
+    answer_field = driver.find_element_by_id('answer-input')
+
     for question in questions:
         # Scroll down to the question on the webpage using PyAutoGUI
         pyautogui.press('pagedown')
@@ -61,11 +88,20 @@ while True:
         print("Question:", question)
         print("Answer:", answer)
         print("------")
-        # You can save the answers to a file or perform any other desired action
+
+        # Type the answer into the answer input field on the website
+        answer_field.clear()
+        answer_field.send_keys(answer)
+
+        # Submit the answer by pressing Enter
+        answer_field.send_keys(Keys.RETURN)
 
         # Scroll down to the next question
         pyautogui.press('pagedown')
         time.sleep(0.5)
+
+    # Close the web browser
+    driver.quit()
 
     # Wait for half an hour before checking for new questions again
     time.sleep(1800)
